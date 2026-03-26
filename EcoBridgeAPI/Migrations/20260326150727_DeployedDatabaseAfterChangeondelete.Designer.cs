@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EcoBridgeAPI.Migrations
 {
     [DbContext(typeof(EcoBridgeDbContext))]
-    [Migration("20260323194847_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260326150727_DeployedDatabaseAfterChangeondelete")]
+    partial class DeployedDatabaseAfterChangeondelete
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -184,7 +184,7 @@ namespace EcoBridgeAPI.Migrations
                     b.HasOne("EcoBridge.Domains.Models.Account", "Account")
                         .WithOne("Admin")
                         .HasForeignKey("EcoBridge.Domains.Models.Admin", "AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Account");
@@ -195,7 +195,7 @@ namespace EcoBridgeAPI.Migrations
                     b.HasOne("EcoBridge.Domains.Models.Account", "Account")
                         .WithOne("Charity")
                         .HasForeignKey("EcoBridge.Domains.Models.Charity", "AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Account");
@@ -231,7 +231,7 @@ namespace EcoBridgeAPI.Migrations
                     b.HasOne("EcoBridge.Domains.Models.Account", "Account")
                         .WithOne("Donor")
                         .HasForeignKey("EcoBridge.Domains.Models.Donor", "AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Account");
@@ -242,7 +242,7 @@ namespace EcoBridgeAPI.Migrations
                     b.HasOne("EcoBridge.Domains.Models.Account", "Account")
                         .WithOne("Volunteer")
                         .HasForeignKey("EcoBridge.Domains.Models.Volunteer", "AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Account");
