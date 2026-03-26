@@ -4,16 +4,19 @@ using EcoBridge.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace EcoBridgeAPI.Migrations
+namespace EcoBridgeAPI.Data.Migrations
 {
     [DbContext(typeof(EcoBridgeDbContext))]
-    partial class EcoBridgeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260326132830_IdentityIntegrated")]
+    partial class IdentityIntegrated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
