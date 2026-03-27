@@ -36,4 +36,5 @@ public class Account
     public Charity? Charity { get; set; }
     public Volunteer? Volunteer { get; set; }
     public Admin? Admin { get; set; }
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

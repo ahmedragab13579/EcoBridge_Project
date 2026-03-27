@@ -11,6 +11,7 @@ public class EcoBridgeDbContext(DbContextOptions<EcoBridgeDbContext> options) : 
     public DbSet<Volunteer> Volunteers => Set<Volunteer>();
     public DbSet<Admin> Admins => Set<Admin>();
     public DbSet<Donation> Donations => Set<Donation>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,21 @@ public class EcoBridgeDbContext(DbContextOptions<EcoBridgeDbContext> options) : 
                 .WithOne(x => x.Account)
                 .HasForeignKey<Admin>(x => x.AccountId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasMany(x => x.RefreshTokens)
+                .WithOne(x => x.Account)
+                .HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.Property(x => x.Token).HasColumnType("nvarchar(512)").IsRequired();
+            entity.Property(x => x.ExpiresAtUtc).HasColumnType("datetime2").IsRequired();
+            entity.Property(x => x.CreatedAtUtc).HasColumnType("datetime2").IsRequired();
+            entity.Property(x => x.RevokedAtUtc).HasColumnType("datetime2");
+            entity.Property(x => x.ReplacedByToken).HasColumnType("nvarchar(512)");
+            entity.HasIndex(x => x.Token).IsUnique();
         });
 
         modelBuilder.Entity<Donor>(entity =>
