@@ -1,7 +1,8 @@
-﻿namespace EcoBridgeAPI.DTO
+namespace EcoBridgeAPI.DTO
 {
     public class CreateVolunteerDTO
     {
-        public string VehicleDetails { get; set; }
+        public int AccountId { get; set; }
+        public string VehicleDetails { get; set; } = string.Empty;
     }
 }

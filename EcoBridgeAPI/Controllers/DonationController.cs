@@ -1,10 +1,7 @@
-﻿using EcoBridge.Data;
-using EcoBridge.Domains.Enums;
 using EcoBridgeAPI.DTO;
+using EcoBridgeAPI.Services.Donation;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace EcoBridgeAPI.Controllers
@@ -13,80 +10,38 @@ namespace EcoBridgeAPI.Controllers
     [ApiController]
     public class DonationController : ControllerBase
     {
-        private readonly EcoBridgeDbContext _context;
+        private readonly IDonationServices _services;
 
-        public DonationController(EcoBridgeDbContext context)
+        public DonationController(IDonationServices services)
         {
-            _context = context;
+            _services = services;
         }
 
         [HttpPost("{id}/assign-volunteer")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AssignVolunteer(int id, AssignVolunteerDTO dto)
         {
-            var donation = await _context.Donations.FindAsync(id);
-
-            if (donation == null)
-                return NotFound("Donation not found");
-
-            if (donation.Status != DonationStatus.Accepted)
-                return BadRequest("Donation must be Accepted first");
-
-            if (donation.VolunteerId != null)
-                return BadRequest("Volunteer already assigned");
-
-            var volunteer = await _context.Volunteers
-                .FirstOrDefaultAsync(v => v.AccountId == dto.VolunteerId);
-
-            if (volunteer == null)
-                return NotFound("Volunteer not found");
-
-            donation.VolunteerId = dto.VolunteerId;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                Message = "Volunteer assigned successfully",
-                donation.Id,
-                donation.VolunteerId,
-                Status = donation.Status.ToString()
-            });
+            var result = await _services.AssignVolunteer(id,dto);
+            if(result._success)
+                return Ok(result);
+            return BadRequest(result);
+           
         }
 
-        private bool IsValidStatusTransition(DonationStatus current, DonationStatus next)
-        {
-            return (current == DonationStatus.Accepted && next == DonationStatus.PickedUp)
-                || (current == DonationStatus.PickedUp && next == DonationStatus.Delivered);
-        }
 
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Volunteer")]
         public async Task<IActionResult> UpdateStatus(int id, UpdateStatusDTO dto)
         {
-            var donation = await _context.Donations.FindAsync(id);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var volunteerId))
+                return Unauthorized("Invalid user context");
 
-            if (donation == null)
-                return NotFound("Donation not found");
+            var result = await _services.UpdateStatus(id, volunteerId, dto);
+            if (result._success)
+                return Ok(result);
+            return BadRequest(result);
 
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-            if (donation.VolunteerId != userId)
-                return Forbid("You can only update your assigned donations");
-
-            if (!IsValidStatusTransition(donation.Status, dto.Status))
-                return BadRequest("Invalid status transition");
-
-            donation.Status = dto.Status;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                Message = "Status updated successfully",
-                donation.Id,
-                Status = donation.Status.ToString()
-            });
         }
     }
 }

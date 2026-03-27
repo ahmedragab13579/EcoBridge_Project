@@ -7,7 +7,7 @@ namespace EcoBridgeAPI.Services.Statistics;
 
 public class StatisticsService(EcoBridgeDbContext dbContext) : IStatisticsService
 {
-    public async Task<AdminStatsDTO> GetAdminStatsAsync(CancellationToken cancellationToken = default)
+    public async Task<Result.Result<AdminStatsDTO>> GetAdminStatsAsync(CancellationToken cancellationToken = default)
     {
         var totalDonations = await dbContext.Donations.AsNoTracking().CountAsync(cancellationToken);
         var pendingDonations = await dbContext.Donations
@@ -36,7 +36,8 @@ public class StatisticsService(EcoBridgeDbContext dbContext) : IStatisticsServic
         var activeDonors = await dbContext.Donors.AsNoTracking().CountAsync(cancellationToken);
         var totalCharities = await dbContext.Charities.AsNoTracking().CountAsync(cancellationToken);
 
-        return new AdminStatsDTO
+
+       var result =   new AdminStatsDTO
         {
             TotalDonations = totalDonations,
             TotalVolunteers = totalVolunteers,
@@ -49,6 +50,8 @@ public class StatisticsService(EcoBridgeDbContext dbContext) : IStatisticsServic
             CancelledDonations = cancelledDonations,
             TotalCharities = totalCharities
         };
+        return Result.Result<AdminStatsDTO>.Success(result, "The Statistics Result");
+    
     }
 }
 
