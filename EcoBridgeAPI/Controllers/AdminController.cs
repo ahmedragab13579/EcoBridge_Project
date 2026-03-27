@@ -8,11 +8,9 @@ namespace EcoBridge.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-[Authorize(Roles = "Admin")]
 public class AdminController(IStatisticsService _statisticsService) : ControllerBase
 {
     [HttpGet("stats")]
-    [Route("/")]
     public async Task<ActionResult<AdminStatsDTO>> GetStats(CancellationToken cancellationToken)
     {
         var dto = await _statisticsService.GetAdminStatsAsync(cancellationToken);
