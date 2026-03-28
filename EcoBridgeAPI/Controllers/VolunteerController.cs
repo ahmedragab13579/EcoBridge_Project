@@ -18,6 +18,7 @@ namespace EcoBridgeAPI.Controllers
 
 
         [HttpGet]
+
         public async Task<IActionResult> GetAll()
         {
             var result = await _services.GetAll();

@@ -11,7 +11,8 @@ namespace EcoBridge.Controllers;
 public class AdminController(IStatisticsService _statisticsService) : ControllerBase
 {
     [HttpGet("stats")]
-    public async Task<ActionResult<AdminStatsDTO>> GetStats(CancellationToken cancellationToken)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
     {
         var dto = await _statisticsService.GetAdminStatsAsync(cancellationToken);
         if(dto._success)

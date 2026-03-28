@@ -20,6 +20,7 @@ builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IDonationServices, DonationServices>();
 builder.Services.AddScoped<IVolunteerServices, VolunteerServices>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddDbContext<EcoBridgeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.Configure<JWTSettings>(builder.Configuration.GetSection("JWT"));
