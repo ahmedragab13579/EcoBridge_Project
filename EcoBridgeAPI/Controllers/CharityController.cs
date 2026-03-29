@@ -1,0 +1,54 @@
+﻿using EcoBridgeAPI.Services.Donation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+namespace EcoBridgeAPI.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize(Roles = "Charity")]
+    public class CharityController : ControllerBase
+    {
+        private readonly IDonationServices _services;
+
+        public CharityController(IDonationServices services)
+        {
+            _services = services;
+        }
+
+        // =========================
+        // Get All Pending Donations
+        // =========================
+        [HttpGet("pending")]
+        public async Task<IActionResult> GetPendingDonations()
+        {
+            var result = await _services.GetPendingDonations();
+
+            if (result._success)
+                return Ok(result);
+
+            return BadRequest(result);
+        }
+
+         //=========================
+         //Accept Donation
+         //=========================
+        [HttpPost("accept/{id}")]
+        public async Task<IActionResult> AcceptDonation(int id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var charityId))
+                return Unauthorized("Invalid user context");
+
+            var result = await _services.AcceptDonation(id, charityId);
+
+            if (result._success)
+                return Ok(result);
+
+            return BadRequest(result);
+        }
+
+    }
+}
