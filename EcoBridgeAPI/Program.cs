@@ -13,24 +13,35 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// =========================
+// Services
+// =========================
 
 builder.Services.AddControllers();
+
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IDonationServices, DonationServices>();
 builder.Services.AddScoped<IVolunteerServices, VolunteerServices>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
 builder.Services.AddDbContext<EcoBridgeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.Configure<JWTSettings>(builder.Configuration.GetSection("JWT"));
 
+// =========================
+// JWT Authentication
+// =========================
+
 var jwtSettings = builder.Configuration.GetSection("JWT").Get<JWTSettings>()!;
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
+})
+.AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -43,29 +54,45 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
     };
 });
-builder.Services.AddOpenApi();
+
+// =========================
+// ?? Swagger (?????)
+// =========================
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// =========================
+// CORS
+// =========================
 
 var allowedOrigins = builder.Configuration.GetSection("AllowOrigins").Get<string[]>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
         policy.WithOrigins(allowedOrigins!)
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
+
+// =========================
+// Rate Limiting
+// =========================
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
     options.OnRejected = async (context, token) =>
     {
         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
         {
-            context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds)
-                .ToString(CultureInfo.InvariantCulture);
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
         }
 
         context.HttpContext.Response.ContentType = "application/json";
@@ -102,21 +129,32 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+// =========================
+// Build App
+// =========================
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// =========================
+// Middleware
+// =========================
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
 app.UseCors("CorsPolicy");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseRateLimiter();
+
 app.MapControllers();
+
 
 app.Run();
