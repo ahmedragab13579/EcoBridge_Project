@@ -1,0 +1,15 @@
+{
+  "workspace": {
+    "id": ""
+  },
+  "entities": {
+    "environments": [],
+    "flows": [],
+    "globals": [],
+    "mocks": [],
+    "specs": [
+      "..\\EcoBridgeAPI\\obj\\Debug\\net10.0\\EndpointInfo\\EcoBridgeAPI.json"
+    ],
+    "collections": []
+  }
+}
