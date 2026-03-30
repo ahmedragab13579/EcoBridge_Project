@@ -1,4 +1,4 @@
-﻿using EcoBridge.DTO;
+using EcoBridgeAPI.DTO;
 
 namespace EcoBridgeAPI.Services.Statistics
 {

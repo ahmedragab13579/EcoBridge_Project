@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EcoBridgeAPI.Services.Donation
 {
-    public class DonationServices : IDonationServices
+    public class DonationService : IDonationService
     {
         private readonly EcoBridgeDbContext _context;
 
-        public DonationServices(EcoBridgeDbContext context)
+        public DonationService(EcoBridgeDbContext context)
         {
             _context = context;
         }
@@ -97,22 +97,18 @@ namespace EcoBridgeAPI.Services.Donation
             if (donation == null)
                 return Result.Result<bool>.Fail(false, "Donation not found");
 
-            // ? ???? ?? Charity ?????
             var charity = await _context.Charities
                 .FirstOrDefaultAsync(c => c.AccountId == charityId);
 
             if (charity == null)
                 return Result.Result<bool>.Fail(false, "Charity not found");
 
-            // ? ???? ?? ?????? Pending
             if (donation.Status != DonationStatus.Pending)
                 return Result.Result<bool>.Fail(false, "Donation is already accepted or processed");
 
-            // ? ???? ?? ???? ?? ???? ????
             if (donation.CharityId != null)
                 return Result.Result<bool>.Fail(false, "Donation already taken by another charity");
 
-            // ? Update
             donation.Status = DonationStatus.Accepted;
             donation.CharityId = charityId;
 

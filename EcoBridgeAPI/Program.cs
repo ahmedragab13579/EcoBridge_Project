@@ -20,8 +20,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
-builder.Services.AddScoped<IDonationServices, DonationServices>();
-builder.Services.AddScoped<IVolunteerServices, VolunteerServices>();
+builder.Services.AddScoped<IDonationService, DonationService>();
+builder.Services.AddScoped<IVolunteerService, VolunteerService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
@@ -31,9 +31,19 @@ builder.Services.AddDbContext<EcoBridgeDbContext>(options =>
 builder.Services.Configure<JWTSettings>(builder.Configuration.GetSection("JWT"));
 
 // =========================
+// Swagger & OpenAPI
+// =========================
+builder.Services.AddEndpointsApiExplorer();
+
+// 1. تسجيل الـ OpenAPI Document باسم "v1" (ضروري عشان MapOpenApi تلاقيها)
+builder.Services.AddOpenApi("v1");
+
+// 2. إبقاء SwaggerGen لو محتاج تستخدم Swagger UI التقليدي
+builder.Services.AddSwaggerGen();
+
+// =========================
 // JWT Authentication
 // =========================
-
 var jwtSettings = builder.Configuration.GetSection("JWT").Get<JWTSettings>()!;
 
 builder.Services.AddAuthentication(options =>
@@ -56,23 +66,15 @@ builder.Services.AddAuthentication(options =>
 });
 
 // =========================
-// ?? Swagger (?????)
-// =========================
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// =========================
 // CORS
 // =========================
-
 var allowedOrigins = builder.Configuration.GetSection("AllowOrigins").Get<string[]>();
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins(allowedOrigins!)
+        policy.WithOrigins(allowedOrigins ?? new[] { "*" })
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -82,11 +84,9 @@ builder.Services.AddCors(options =>
 // =========================
 // Rate Limiting
 // =========================
-
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
     options.OnRejected = async (context, token) =>
     {
         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
@@ -94,7 +94,6 @@ builder.Services.AddRateLimiter(options =>
             context.HttpContext.Response.Headers.RetryAfter =
                 ((int)retryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
         }
-
         context.HttpContext.Response.ContentType = "application/json";
         await context.HttpContext.Response.WriteAsync(
             """{"error": "Too many requests. Please check the Retry-After header."}""",
@@ -116,7 +115,6 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("UserRateLimit", httpContext =>
     {
         var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "Anonymous";
-
         return RateLimitPartition.GetSlidingWindowLimiter(
             partitionKey: userId,
             factory: _ => new SlidingWindowRateLimiterOptions
@@ -132,23 +130,23 @@ builder.Services.AddRateLimiter(options =>
 // =========================
 // Build App
 // =========================
-
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-app.UseHttpsRedirection();
+app.MapOpenApi();
 
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/openapi/v1.json", "EcoBridge API v1");
+    options.RoutePrefix = "swagger"; 
+});
+
+app.UseHttpsRedirection();
 app.UseCors("CorsPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseRateLimiter();
-
 app.MapControllers();
-
 
 app.Run();

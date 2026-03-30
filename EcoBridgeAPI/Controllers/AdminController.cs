@@ -1,10 +1,9 @@
-using EcoBridge.Data;
-using EcoBridge.DTO;
+using EcoBridgeAPI.DTO;
 using EcoBridgeAPI.Services.Statistics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EcoBridge.Controllers;
+namespace EcoBridgeAPI.Controllers;
 
 [ApiController]
 [Route("api/admin")]

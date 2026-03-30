@@ -1,4 +1,4 @@
-﻿using EcoBridgeAPI.Services.Donation;
+using EcoBridgeAPI.Services.Donation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -10,9 +10,9 @@ namespace EcoBridgeAPI.Controllers
     [Authorize(Roles = "Charity")]
     public class CharityController : ControllerBase
     {
-        private readonly IDonationServices _services;
+        private readonly IDonationService _services;
 
-        public CharityController(IDonationServices services)
+        public CharityController(IDonationService services)
         {
             _services = services;
         }

@@ -5,11 +5,11 @@ namespace EcoBridgeAPI.Services.Volunteer
     using EcoBridgeAPI.DTO;
     using Microsoft.EntityFrameworkCore;
 
-    public class VolunteerServices : IVolunteerServices
+    public class VolunteerService : IVolunteerService
     {
         private readonly EcoBridgeDbContext _context;
 
-        public VolunteerServices(EcoBridgeDbContext context)
+        public VolunteerService(EcoBridgeDbContext context)
         {
             _context = context;
         }

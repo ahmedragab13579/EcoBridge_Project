@@ -1,4 +1,4 @@
-namespace EcoBridge.DTO;
+namespace EcoBridgeAPI.DTO;
 
 public class AdminStatsDTO
 {
