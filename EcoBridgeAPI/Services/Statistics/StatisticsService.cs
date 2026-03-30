@@ -1,6 +1,6 @@
 using EcoBridge.Data;
 using EcoBridge.Domains.Enums;
-using EcoBridge.DTO;
+using EcoBridgeAPI.DTO;
 using Microsoft.EntityFrameworkCore;
 
 namespace EcoBridgeAPI.Services.Statistics;

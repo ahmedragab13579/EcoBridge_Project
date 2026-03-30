@@ -1,7 +1,7 @@
 using EcoBridgeAPI.DTO;
 namespace EcoBridgeAPI.Services.Volunteer
 {
-    public interface IVolunteerServices
+    public interface IVolunteerService
     {
         Task<Result.Result<List<VolunteerDTO>>> GetAll();
 

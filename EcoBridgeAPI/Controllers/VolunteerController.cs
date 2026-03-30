@@ -9,9 +9,9 @@ namespace EcoBridgeAPI.Controllers
     [ApiController]
     public class VolunteerController : ControllerBase
     {
-        private readonly IVolunteerServices _services;
+        private readonly IVolunteerService _services;
 
-        public VolunteerController(IVolunteerServices services)
+        public VolunteerController(IVolunteerService services)
         {
             _services = services;
         }

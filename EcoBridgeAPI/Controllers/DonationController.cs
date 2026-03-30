@@ -10,9 +10,9 @@ namespace EcoBridgeAPI.Controllers
     [ApiController]
     public class DonationController : ControllerBase
     {
-        private readonly IDonationServices _services;
+        private readonly IDonationService _services;
 
-        public DonationController(IDonationServices services)
+        public DonationController(IDonationService services)
         {
             _services = services;
         }

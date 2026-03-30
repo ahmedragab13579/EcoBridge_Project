@@ -2,7 +2,7 @@ using EcoBridgeAPI.DTO;
 
 namespace EcoBridgeAPI.Services.Donation
 {
-    public interface IDonationServices
+    public interface IDonationService
     {
         Task<Result.Result<bool>> AssignVolunteer(int id, AssignVolunteerDTO dto);
 
