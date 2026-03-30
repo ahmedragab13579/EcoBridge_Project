@@ -14,6 +14,9 @@ namespace EcoBridgeAPI.Services.Donation
             _context = context;
         }
 
+        // =========================
+        // Assign Volunteer (Admin)
+        // =========================
         public async Task<Result.Result<bool>> AssignVolunteer(int id, AssignVolunteerDTO dto)
         {
             var donation = await _context.Donations.FindAsync(id);
@@ -40,6 +43,9 @@ namespace EcoBridgeAPI.Services.Donation
             return Result.Result<bool>.Success(true, "Volunteer assigned successfully");
         }
 
+        // =========================
+        // Update Status (Volunteer)
+        // =========================
         public async Task<Result.Result<bool>> UpdateStatus(int id, int volunteerId, UpdateStatusDTO dto)
         {
             var donation = await _context.Donations.FindAsync(id);
@@ -60,11 +66,59 @@ namespace EcoBridgeAPI.Services.Donation
             return Result.Result<bool>.Success(true, "Status updated successfully");
         }
 
+        // =========================
+        // Status Validation
+        // =========================
         private bool IsValidStatusTransition(DonationStatus current, DonationStatus next)
         {
             return (current == DonationStatus.Accepted && next == DonationStatus.PickedUp)
                 || (current == DonationStatus.PickedUp && next == DonationStatus.Delivered);
         }
 
+        // =========================
+        // Charity: Get Pending Donations
+        // =========================
+        public async Task<Result.Result<object>> GetPendingDonations()
+        {
+            var donations = await _context.Donations
+                .Where(d => d.Status == DonationStatus.Pending && d.CharityId == null)
+                .ToListAsync();
+
+            return Result.Result<object>.Success(donations, "Pending donations retrieved successfully");
+        }
+
+        // =========================
+        // Charity: Accept Donation
+        // =========================
+        public async Task<Result.Result<bool>> AcceptDonation(int donationId, int charityId)
+        {
+            var donation = await _context.Donations.FindAsync(donationId);
+
+            if (donation == null)
+                return Result.Result<bool>.Fail(false, "Donation not found");
+
+            // ? ???? ?? Charity ?????
+            var charity = await _context.Charities
+                .FirstOrDefaultAsync(c => c.AccountId == charityId);
+
+            if (charity == null)
+                return Result.Result<bool>.Fail(false, "Charity not found");
+
+            // ? ???? ?? ?????? Pending
+            if (donation.Status != DonationStatus.Pending)
+                return Result.Result<bool>.Fail(false, "Donation is already accepted or processed");
+
+            // ? ???? ?? ???? ?? ???? ????
+            if (donation.CharityId != null)
+                return Result.Result<bool>.Fail(false, "Donation already taken by another charity");
+
+            // ? Update
+            donation.Status = DonationStatus.Accepted;
+            donation.CharityId = charityId;
+
+            await _context.SaveChangesAsync();
+
+            return Result.Result<bool>.Success(true, "Donation accepted successfully");
+        }
     }
 }
