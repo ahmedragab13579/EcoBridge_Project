@@ -11,9 +11,8 @@ The EcoBridge Project is an innovative platform designed to facilitate the conne
 
 ## Implementation
 The EcoBridge Project is built using modern web development technologies, including:
-- **Frontend**: React.js for a responsive user interface.
-- **Backend**: Node.js and Express for server-side logic.
-- **Database**: MongoDB for storing business listings and user data.
+- **Backend**: >Net and Express for server-side logic.
+- **Database**: SPL for storing business listings and user data.
 
 ### Installation
 To set up the EcoBridge Project locally, follow these steps:
