@@ -23,17 +23,20 @@ namespace EcoBridgeAPI.Controllers
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingDonations()
         {
-            var result = await _services.GetPendingDonations();
+            var result = await _services.GetPendingDonations(HttpContext.RequestAborted);
 
-            if (result._success)
-                return Ok(result);
+            if (result.Success)
+                return Ok(result.Value);
 
-            return BadRequest(result);
+            if (!string.IsNullOrWhiteSpace(result.Message) && result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                return NotFound(result.Message);
+
+            return BadRequest(result.Message);
         }
 
-         //=========================
-         //Accept Donation
-         //=========================
+        //=========================
+        //Accept Donation
+        //=========================
         [HttpPost("accept/{id}")]
         public async Task<IActionResult> AcceptDonation(int id)
         {
@@ -42,12 +45,15 @@ namespace EcoBridgeAPI.Controllers
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var charityId))
                 return Unauthorized("Invalid user context");
 
-            var result = await _services.AcceptDonation(id, charityId);
+            var result = await _services.AcceptDonation(id, charityId, HttpContext.RequestAborted);
 
-            if (result._success)
-                return Ok(result);
+            if (result.Success)
+                return Ok(result.Value);
 
-            return BadRequest(result);
+            if (!string.IsNullOrWhiteSpace(result.Message) && result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                return NotFound(result.Message);
+
+            return BadRequest(result.Message);
         }
 
     }

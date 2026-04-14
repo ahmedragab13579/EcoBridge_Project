@@ -1,9 +1,10 @@
 using EcoBridgeAPI.DTO;
+using EcoBridgeAPI.Result;
 
 namespace EcoBridgeAPI.Services.Statistics
 {
     public interface IStatisticsService
     {
-        Task<Result.Result<AdminStatsDTO>> GetAdminStatsAsync(CancellationToken cancellationToken = default);
+        Task<Result<AdminStatsDTO>> GetAdminStatsAsync(CancellationToken cancellationToken = default);
     }
 }

@@ -15,26 +15,26 @@ public class AuthController(IAuthService authService) : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterRequestDTO request, CancellationToken ct)
     {
         var result = await authService.RegisterAsync(request, ct);
-        if (result._success)
-            return Ok(result);
-        return BadRequest(result);
+        if (result.Success)
+            return Ok(result.Value);
+        return BadRequest(result.Message);
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequestDTO request, CancellationToken ct)
     {
         var result = await authService.LoginAsync(request, ct);
-        if (result._success)
-            return Ok(result);
-        return Unauthorized(result);
+        if (result.Success)
+            return Ok(result.Value);
+        return Unauthorized(result.Message);
     }
 
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDTO request, CancellationToken ct)
     {
         var result = await authService.RefreshAsync(request, ct);
-        if (result._success)
-            return Ok(result);
-        return Unauthorized(result);
+        if (result.Success)
+            return Ok(result.Value);
+        return Unauthorized(result.Message);
     }
 }

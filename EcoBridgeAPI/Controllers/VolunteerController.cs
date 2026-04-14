@@ -22,18 +22,18 @@ namespace EcoBridgeAPI.Controllers
         public async Task<IActionResult> GetAll()
         {
             var result = await _services.GetAll();
-            if (result._success)
-                return Ok(result);
-            return BadRequest(result);
+            if (result.Success)
+                return Ok(result.Value);
+            return BadRequest(result.Message);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _services.GetById(id);
-            if (result._success)
-                return Ok(result);
-            return NotFound(result);
+            if (result.Success)
+                return Ok(result.Value);
+            return NotFound(result.Message);
         }
 
 
@@ -42,18 +42,19 @@ namespace EcoBridgeAPI.Controllers
         public async Task<IActionResult> Create(CreateVolunteerDTO dto)
         {
             var result = await _services.Create(dto.AccountId, dto);
-            if (result._success)
-                return Ok(result);
-            return BadRequest(result);
+            if (result.Success)
+                return Ok(result.Value);
+            return BadRequest(result.Message);
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, CreateVolunteerDTO dto)
         {
             var result = await _services.Update(id, dto);
-            if (result._success)
-                return Ok(result);
-            return NotFound(result);
+            if (result.Success)
+                return Ok(result.Value);
+            return NotFound(result.Message);
         }
 
         [HttpDelete("{id}")]
@@ -61,9 +62,9 @@ namespace EcoBridgeAPI.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _services.Delete(id);
-            if (result._success)
-                return Ok(result);
-            return NotFound(result);
+            if (result.Success)
+                return Ok(result.Value);
+            return NotFound(result.Message);
         }
     }
 }
