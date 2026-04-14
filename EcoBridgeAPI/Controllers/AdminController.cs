@@ -14,9 +14,9 @@ public class AdminController(IStatisticsService _statisticsService) : Controller
     public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
     {
         var dto = await _statisticsService.GetAdminStatsAsync(cancellationToken);
-        if(dto._success)
-          return Ok(dto);
-        return BadRequest(dto);
+        if (dto.Success)
+            return Ok(dto.Value);
+        return BadRequest(dto.Message);
     }
 }
 

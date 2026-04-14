@@ -3,6 +3,7 @@ namespace EcoBridgeAPI.Services.Volunteer
     using EcoBridge.Data;
     using EcoBridge.Domains.Models;
     using EcoBridgeAPI.DTO;
+    using EcoBridgeAPI.Result;
     using Microsoft.EntityFrameworkCore;
 
     public class VolunteerService : IVolunteerService
@@ -14,7 +15,7 @@ namespace EcoBridgeAPI.Services.Volunteer
             _context = context;
         }
 
-        public async Task<Result.Result<List<VolunteerDTO>>> GetAll()
+        public async Task<Result<List<VolunteerDTO>>> GetAll()
         {
             var volunteers = await _context.Volunteers
                 .AsNoTracking()
@@ -27,10 +28,10 @@ namespace EcoBridgeAPI.Services.Volunteer
                 })
                 .ToListAsync();
 
-            return Result.Result<List<VolunteerDTO>>.Success(volunteers, "Volunteers fetched successfully");
+            return Result<List<VolunteerDTO>>.SuccessResult(volunteers, "Volunteers fetched successfully");
         }
 
-        public async Task<Result.Result<VolunteerDTO>> GetById(int id)
+        public async Task<Result<VolunteerDTO>> GetById(int id)
         {
             var volunteer = await _context.Volunteers
                 .AsNoTracking()
@@ -38,7 +39,7 @@ namespace EcoBridgeAPI.Services.Volunteer
                 .FirstOrDefaultAsync(v => v.AccountId == id);
 
             if (volunteer == null)
-                return Result.Result<VolunteerDTO>.Fail(null!, "Volunteer not found");
+                return Result<VolunteerDTO>.FailResult(null!, "Volunteer not found");
 
             var dto = new VolunteerDTO
             {
@@ -47,18 +48,18 @@ namespace EcoBridgeAPI.Services.Volunteer
                 VehicleDetails = volunteer.VehicleDetails ?? string.Empty
             };
 
-            return Result.Result<VolunteerDTO>.Success(dto, "Volunteer fetched successfully");
+            return Result<VolunteerDTO>.SuccessResult(dto, "Volunteer fetched successfully");
         }
 
-        public async Task<Result.Result<int>> Create(int accountId, CreateVolunteerDTO dto)
+        public async Task<Result<int>> Create(int accountId, CreateVolunteerDTO dto)
         {
             var exists = await _context.Volunteers.AnyAsync(v => v.AccountId == accountId);
             if (exists)
-                return Result.Result<int>.Fail(0, "Volunteer already exists for this account");
+                return Result<int>.FailResult(0, "Volunteer already exists for this account");
 
             var accountExists = await _context.Accounts.AnyAsync(a => a.Id == accountId);
             if (!accountExists)
-                return Result.Result<int>.Fail(0, "Account not found");
+                return Result<int>.FailResult(0, "Account not found");
 
             var volunteer = new Volunteer
             {
@@ -69,31 +70,31 @@ namespace EcoBridgeAPI.Services.Volunteer
             _context.Volunteers.Add(volunteer);
             await _context.SaveChangesAsync();
 
-            return Result.Result<int>.Success(volunteer.AccountId, "Volunteer created successfully");
+            return Result<int>.SuccessResult(volunteer.AccountId, "Volunteer created successfully");
         }
 
-        public async Task<Result.Result<bool>> Update(int id, CreateVolunteerDTO dto)
+        public async Task<Result<bool>> Update(int id, CreateVolunteerDTO dto)
         {
             var volunteer = await _context.Volunteers.FindAsync(id);
             if (volunteer == null)
-                return Result.Result<bool>.Fail(false, "Volunteer not found");
+                return Result<bool>.FailResult(false, "Volunteer not found");
 
             volunteer.VehicleDetails = dto.VehicleDetails;
             await _context.SaveChangesAsync();
 
-            return Result.Result<bool>.Success(true, "Volunteer updated successfully");
+            return Result<bool>.SuccessResult(true, "Volunteer updated successfully");
         }
 
-        public async Task<Result.Result<bool>> Delete(int id)
+        public async Task<Result<bool>> Delete(int id)
         {
             var volunteer = await _context.Volunteers.FindAsync(id);
             if (volunteer == null)
-                return Result.Result<bool>.Fail(false, "Volunteer not found");
+                return Result<bool>.FailResult(false, "Volunteer not found");
 
             _context.Volunteers.Remove(volunteer);
             await _context.SaveChangesAsync();
 
-            return Result.Result<bool>.Success(true, "Volunteer deleted successfully");
+            return Result<bool>.SuccessResult(true, "Volunteer deleted successfully");
         }
     }
 }

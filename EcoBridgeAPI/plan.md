@@ -1,46 +1,65 @@
-# Technical PRD: Developer 5 (Admin Dashboard & Statistics)
+# Context
 
-## 1. Module Overview
-[cite_start]This module is dedicated to providing the system administrator with high-level oversight and real-time data visualization of the EcoBridge platform's performance[cite: 49, 51].
-* **Namespace Structure**: 
-    * [cite_start]`EcoBridgeAPI.Services`: For statistics aggregation and LINQ queries.
-    * [cite_start]`EcoBridgeAPI.Controllers`: For secure, Admin-only API endpoints[cite: 27, 29].
+I am building an ASP.NET Core Web API called "EcoBridge". The architecture uses a custom `Result<T>` pattern for all service responses, Entity Framework Core for data access, and JWT for authentication.
 
----
+I need to implement the missing "Donation Creation and Management" module for the "Donor" role (Task assigned to Dev 2). The location will remain a simple string, so no map integration is needed.
 
-## 2. Functional Requirements (Admin Analytics)
-[cite_start]The Admin Dashboard must provide APIs to return structured data for the following Key Performance Indicators (KPIs)[cite: 51, 63]:
-* [cite_start]**Total Donations Count**: A summary of all food donation requests submitted by Donors[cite: 51].
-* [cite_start]**Completed Deliveries**: Total count of donations with `Status == 3` (Delivered)[cite: 47, 51].
-* [cite_start]**Active Volunteers**: Count of all registered accounts in the `Volunteers` table[cite: 51].
-* [cite_start]**User Breakdown**: Total number of registered Donors, Charities, and Volunteers linked via the Identity system[cite: 10, 63].
+# Existing Dependencies to utilize
 
----
+- `EcoBridgeDbContext` (contains `Donations` DbSet).
+- `Result<T>` class for responses: `Result.Success(value, message)` and `Result.Fail(value, message)`.
+- Enums: `DonationStatus.Pending`
+- DTOs (already created):
+  - `CreateDonationDTO` (FoodType, Quantity, ExpiryDate, PickupLocation, IFormFile? Image)
+  - `UpdateDonationDTO` (nullable fields of the above)
 
-## 3. Data & Security Logic (Identity Integrated)
-* [cite_start]**Admin Profile**: Linked to the `Account` (inheriting from `IdentityUser<int>`) via a 1:1 relationship using `AccountId`[cite: 125, 128].
-* [cite_start]**Authorization**: All endpoints in this module must be strictly protected using `[Authorize(Roles = "Admin")]`[cite: 27, 63].
-* [cite_start]**Data Retrieval**: Use efficient Async LINQ queries (e.g., `CountAsync`) through the `EcoBridgeDbContext` to avoid performance bottlenecks[cite: 15, 130].
+# Tasks Required
 
----
+## Task 1: Cloudinary Image Service
 
-## 4. GitHub Milestone: Admin Core Features
-### Milestone: Admin Dashboard MVP
-* **Issue #1: Admin Statistics API**: Create an `AdminStatsDTO` and a controller endpoint to return total counts for donations, users, and successful deliveries.
-* [cite_start]**Issue #2: Delivery Lifecycle Summary**: Implement logic to categorize donations by status (Pending, Accepted, Picked Up, Delivered, Cancelled)[cite: 47].
-* [cite_start]**Issue #3: User Activity Overview**: Provide data on the distribution of different user roles within the system[cite: 10].
+Create a service to handle image uploads using the `CloudinaryDotNet` package.
 
----
+1. Create `CloudinarySettings` class (CloudName, ApiKey, ApiSecret) to bind from appsettings.
+2. Create `IPhotoService` with a method: `Task<string?> UploadImageAsync(IFormFile file)`.
+3. Create `PhotoService` implementing the interface. Validate the file (size/extension if necessary) and return the secure URL string.
 
-## 5. LLM Implementation Prompt (For Dev 5 Core Tasks)
+## Task 2: Update IDonationService & DonationService
 
-> **Context**: I am Developer 5 for "EcoBridge" using ASP.NET Core 8 and Identity.
-> **Task**: Generate the backend logic for the Admin Statistics module.
-> 
-> **Requirements**:
-> 1. **AdminStatsDTO**: Create a DTO containing `TotalDonations`, `TotalVolunteers`, `CompletedDeliveries`, and `ActiveDonors`.
-> 2. **StatisticsService**: Implement a service in the `Data` folder using `EcoBridgeDbContext` (which inherits from `IdentityDbContext`) to fetch these counts asynchronously.
-> 3. **AdminController**: Create a controller with a `GET` method `/api/admin/stats`. 
-> 4. **Security**: Apply `[Authorize(Roles = "Admin")]` and ensure it uses JWT role enforcement.
-> 
-> **Focus**: Provide only the Service, Controller, and DTO code. No deployment configuration needed.
+Add the following methods to the existing `DonationService`.
+**Business Rules:**
+
+- Only the Donor who created the donation can Update or Delete it.
+- Updates and Deletions are ONLY allowed if the `DonationStatus` is `Pending` (Value = 0).
+
+1. **CreateDonation:**
+   - Input: `int accountId`, `CreateDonationDTO dto`.
+   - Logic: Find the `DonorId` using the `accountId`. Upload the image using `IPhotoService` if provided. Map DTO to `Donation` entity (Status = Pending, CreatedAt = DateTime.UtcNow). Save to DB.
+   - Return: `Result<int>` (the new Donation ID).
+
+2. **UpdateDonation:**
+   - Input: `int donationId`, `int accountId`, `UpdateDonationDTO dto`.
+   - Logic: Find donation. Verify it belongs to the donor associated with `accountId`. Verify status is `Pending`. Update provided fields. Upload new image if provided and update the `ImageUrl`. Save to DB.
+   - Return: `Result<bool>`.
+
+3. **DeleteDonation:**
+   - Input: `int donationId`, `int accountId`.
+   - Logic: Find donation. Verify it belongs to the donor associated with `accountId`. Verify status is `Pending`. Remove from DB. Save.
+   - Return: `Result<bool>`.
+
+## Task 3: Donation Controller Endpoints
+
+Add the following endpoints to the existing `DonationController`:
+
+- **POST `/api/donation`**: `[Authorize(Roles = "Donor")]`. Extracts AccountId from `User.FindFirst(ClaimTypes.NameIdentifier)`, calls `CreateDonation`.
+- **PUT `/api/donation/{id}`**: `[Authorize(Roles = "Donor")]`. Extracts AccountId, calls `UpdateDonation`.
+- **DELETE `/api/donation/{id}`**: `[Authorize(Roles = "Donor")]`. Extracts AccountId, calls `DeleteDonation`.
+
+# Output Requirements
+
+Please generate ONLY the C# code for:
+
+1. `CloudinarySettings.cs`
+2. `IPhotoService.cs` & `PhotoService.cs`
+3. The new methods for `IDonationService.cs` & `DonationService.cs`
+4. The new endpoints for `DonationController.cs`
+   Do not provide explanations, just the clean, production-ready code matching the project's existing style.

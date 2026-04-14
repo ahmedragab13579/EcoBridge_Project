@@ -1,9 +1,11 @@
 using EcoBridge.Data;
 using EcoBridgeAPI.Services.Auth;
 using EcoBridgeAPI.Services.Donation;
+using EcoBridgeAPI.Services.Photo;
 using EcoBridgeAPI.Services.Statistics;
 using EcoBridgeAPI.Services.Volunteer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
@@ -18,17 +20,53 @@ var builder = WebApplication.CreateBuilder(args);
 // =========================
 
 builder.Services.AddControllers();
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(e => e.Value?.Errors.Count > 0)
+            .SelectMany(x => x.Value!.Errors)
+            .Select(x => x.ErrorMessage != string.Empty ? x.ErrorMessage : x.Exception?.Message)
+            .ToList();
+
+        var errorMessage = string.Join(" | ", errors);
+
+        // تبسيط رسالة الخطأ لو المشكلة في الـ RoleId
+        if (errorMessage.Contains("converted to EcoBridge.Domains.Enums.UserRole"))
+        {
+            errorMessage = "Invalid Role ID. Please provide a valid role number (2 for Donor, 3 for Charity, 4 for Volunteer).";
+        }
+
+        // ترجيع الإيرور بنفس شكل الـ Result بتاع المشروع
+        var result = EcoBridgeAPI.Result.Result<object>.FailResult(null!, errorMessage);
+
+        return new BadRequestObjectResult(result);
+    };
+});
 
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IDonationService, DonationService>();
 builder.Services.AddScoped<IVolunteerService, VolunteerService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPhotoService, PhotoService>();
 
 builder.Services.AddDbContext<EcoBridgeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.Configure<JWTSettings>(builder.Configuration.GetSection("JWT"));
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
+
+// Validate Cloudinary configuration and log guidance
+var cloudinarySettings = builder.Configuration.GetSection("Cloudinary").Get<CloudinarySettings>();
+if (cloudinarySettings == null ||
+    string.IsNullOrWhiteSpace(cloudinarySettings.CloudName) ||
+    string.IsNullOrWhiteSpace(cloudinarySettings.ApiKey) ||
+    string.IsNullOrWhiteSpace(cloudinarySettings.ApiSecret))
+{
+    Console.WriteLine("Cloudinary is not fully configured. Photo uploads will be disabled. To enable, set Cloudinary:CloudName, Cloudinary:ApiKey and Cloudinary:ApiSecret in configuration.");
+}
 
 // =========================
 // Swagger & OpenAPI
@@ -44,7 +82,14 @@ builder.Services.AddSwaggerGen();
 // =========================
 // JWT Authentication
 // =========================
-var jwtSettings = builder.Configuration.GetSection("JWT").Get<JWTSettings>()!;
+var jwtSettings = builder.Configuration.GetSection("JWT").Get<JWTSettings>();
+
+// Basic runtime validation for JWT configuration to fail fast with clear message
+if (jwtSettings == null || string.IsNullOrWhiteSpace(jwtSettings.SecretKey) ||
+    string.IsNullOrWhiteSpace(jwtSettings.Issuer) || string.IsNullOrWhiteSpace(jwtSettings.Audience))
+{
+    throw new InvalidOperationException("JWT configuration is missing or incomplete. Please configure 'JWT' section in appsettings.");
+}
 
 builder.Services.AddAuthentication(options =>
 {
@@ -68,16 +113,31 @@ builder.Services.AddAuthentication(options =>
 // =========================
 // CORS
 // =========================
-var allowedOrigins = builder.Configuration.GetSection("AllowOrigins").Get<string[]>();
+// =========================
+// CORS
+// =========================
+// 1. قراءة القيمة كنص عادي (String) بناءً على ملف appsettings.json
+var allowedOrigin = builder.Configuration.GetValue<string>("AllowOrigins");
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins(allowedOrigins ?? new[] { "*" })
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        // 2. لو القيمة نجمة، افتحها للكل
+        if (allowedOrigin == "*")
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        // 3. لو حطيت لينك محدد بعدين، هيقراه ويشغله
+        else if (!string.IsNullOrEmpty(allowedOrigin))
+        {
+            policy.WithOrigins(allowedOrigin)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -137,10 +197,10 @@ app.MapOpenApi();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/openapi/v1.json", "EcoBridge API v1");
-    options.RoutePrefix = "swagger"; 
+    options.RoutePrefix = "swagger";
 });
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors("CorsPolicy");
 
 app.UseAuthentication();

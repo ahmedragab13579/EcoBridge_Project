@@ -8,9 +8,22 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace EcoBridgeAPI.Services.Auth;
 
-public class TokenService(IOptions<JWTSettings> jwtOptions) : ITokenService
+public class TokenService : ITokenService
 {
-    private readonly JWTSettings _jwtSettings = jwtOptions.Value;
+    private readonly JWTSettings _jwtSettings;
+
+    public TokenService(IOptions<JWTSettings> jwtOptions)
+    {
+        if (jwtOptions == null) throw new ArgumentNullException(nameof(jwtOptions));
+        _jwtSettings = jwtOptions.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
+
+        if (string.IsNullOrWhiteSpace(_jwtSettings.SecretKey))
+            throw new InvalidOperationException("JWT SecretKey is not configured. Set JWT:SecretKey in configuration.");
+        if (string.IsNullOrWhiteSpace(_jwtSettings.Issuer) || string.IsNullOrWhiteSpace(_jwtSettings.Audience))
+            throw new InvalidOperationException("JWT Issuer/Audience are not configured. Set JWT:Issuer and JWT:Audience in configuration.");
+        if (_jwtSettings.DurationInMinutes <= 0)
+            throw new InvalidOperationException("JWT DurationInMinutes must be greater than zero.");
+    }
 
     public Task<string> GenerateAccessToken(Account user, CancellationToken ct)
     {

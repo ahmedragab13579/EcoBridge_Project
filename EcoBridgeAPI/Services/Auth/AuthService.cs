@@ -4,6 +4,7 @@ using EcoBridge.Data;
 using EcoBridge.Domains.Enums;
 using EcoBridge.Domains.Models;
 using EcoBridgeAPI.DTO;
+using EcoBridgeAPI.Result;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -19,20 +20,32 @@ public class AuthService(
     private readonly PasswordHasher<Account> _passwordHasher = new();
     private readonly JWTSettings _jwtSettings = jwtOptions.Value;
 
-    public async Task<Result.Result<AuthResponseDTO>> RegisterAsync(RegisterRequestDTO request, CancellationToken ct)
+    public async Task<Result<AuthResponseDTO>> RegisterAsync(RegisterRequestDTO request, CancellationToken ct)
     {
         if (request.RoleId == UserRole.Admin)
         {
-            return Result.Result<AuthResponseDTO>.Fail(
+            return Result<AuthResponseDTO>.FailResult(
                 new AuthResponseDTO(),
                 "Registration with the Admin role is not allowed.");
+        }
+        if (request.RoleId > UserRole.Volunteer)
+        {
+            return Result<AuthResponseDTO>.FailResult(
+                new AuthResponseDTO(),
+                "Registration with the specified role is not allowed.");
+        }
+        if (request.RoleId < UserRole.Admin)
+        {
+            return Result<AuthResponseDTO>.FailResult(
+                new AuthResponseDTO(),
+                "Registration with the specified role is not allowed.");
         }
 
         var email = request.Email.Trim().ToLowerInvariant();
         var exists = await dbContext.Accounts.AnyAsync(x => x.Email == email, ct);
         if (exists)
         {
-            return Result.Result<AuthResponseDTO>.Fail(new AuthResponseDTO(), "Email already registered.");
+            return Result<AuthResponseDTO>.FailResult(new AuthResponseDTO(), "Email already registered.");
         }
 
         var account = new Account
@@ -49,22 +62,22 @@ public class AuthService(
         await dbContext.SaveChangesAsync(ct);
 
         var response = await IssueNewSessionAsync(account, ct);
-        return Result.Result<AuthResponseDTO>.Success(response, "Registered successfully.");
+        return Result<AuthResponseDTO>.SuccessResult(response, "Registered successfully.");
     }
 
-    public async Task<Result.Result<AuthResponseDTO>> LoginAsync(LoginRequestDTO request, CancellationToken ct)
+    public async Task<Result<AuthResponseDTO>> LoginAsync(LoginRequestDTO request, CancellationToken ct)
     {
         var email = request.Email.Trim().ToLowerInvariant();
         var account = await dbContext.Accounts.FirstOrDefaultAsync(x => x.Email == email, ct);
         if (account is null)
         {
-            return Result.Result<AuthResponseDTO>.Fail(new AuthResponseDTO(), "Invalid credentials.");
+            return Result<AuthResponseDTO>.FailResult(new AuthResponseDTO(), "Invalid credentials.");
         }
 
         var verifyResult = _passwordHasher.VerifyHashedPassword(account, account.PasswordHash, request.Password);
         if (verifyResult == PasswordVerificationResult.Failed)
         {
-            return Result.Result<AuthResponseDTO>.Fail(new AuthResponseDTO(), "Invalid credentials.");
+            return Result<AuthResponseDTO>.FailResult(new AuthResponseDTO(), "Invalid credentials.");
         }
 
         if (verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
@@ -74,10 +87,10 @@ public class AuthService(
         }
 
         var response = await IssueNewSessionAsync(account, ct);
-        return Result.Result<AuthResponseDTO>.Success(response, "Logged in successfully.");
+        return Result<AuthResponseDTO>.SuccessResult(response, "Logged in successfully.");
     }
 
-    public async Task<Result.Result<AuthResponseDTO>> RefreshAsync(RefreshTokenRequestDTO request, CancellationToken ct)
+    public async Task<Result<AuthResponseDTO>> RefreshAsync(RefreshTokenRequestDTO request, CancellationToken ct)
     {
         ClaimsPrincipal principal;
         try
@@ -86,14 +99,14 @@ public class AuthService(
         }
         catch (SecurityTokenException)
         {
-            return Result.Result<AuthResponseDTO>.Fail(new AuthResponseDTO(), "Invalid token.");
+            return Result<AuthResponseDTO>.FailResult(new AuthResponseDTO(), "Invalid token.");
         }
 
         var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                           ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(userIdClaim, out var userId))
         {
-            return Result.Result<AuthResponseDTO>.Fail(new AuthResponseDTO(), "Invalid token payload.");
+            return Result<AuthResponseDTO>.FailResult(new AuthResponseDTO(), "Invalid token payload.");
         }
 
         var dbRefreshToken = await dbContext.RefreshTokens
@@ -104,13 +117,13 @@ public class AuthService(
             dbRefreshToken.AccountId != userId ||
             !dbRefreshToken.IsActive)
         {
-            return Result.Result<AuthResponseDTO>.Fail(new AuthResponseDTO(), "Invalid refresh token.");
+            return Result<AuthResponseDTO>.FailResult(new AuthResponseDTO(), "Invalid refresh token.");
         }
 
         dbRefreshToken.RevokedAtUtc = DateTime.UtcNow;
 
         var response = await IssueRotatedSessionAsync(dbRefreshToken.Account, dbRefreshToken, ct);
-        return Result.Result<AuthResponseDTO>.Success(response, "Token refreshed successfully.");
+        return Result<AuthResponseDTO>.SuccessResult(response, "Token refreshed successfully.");
     }
 
     private async Task<AuthResponseDTO> IssueNewSessionAsync(Account account, CancellationToken ct)
